@@ -16,19 +16,18 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/slab.h>
-#include <linux/display_state.h>
 
-#define MAPLE_IOSCHED_PATCHLEVEL	(DESKTOP-9)
+#define MAPLE_IOSCHED_PATCHLEVEL	(PC-10)
 
 enum { ASYNC, SYNC };
 
 /* Tunables */
-static const int sync_read_expire = 100;	/* max time before a read sync is submitted. */
-static const int sync_write_expire = 350;	/* max time before a write sync is submitted. */
-static const int async_read_expire = 200;	/* ditto for read async, these limits are SOFT! */
-static const int async_write_expire = 500;	/* ditto for write async, these limits are SOFT! */
+static const int sync_read_expire = 400;	/* max time before a read sync is submitted. */
+static const int sync_write_expire = 850;	/* max time before a write sync is submitted. */
+static const int async_read_expire = 600;	/* ditto for read async, these limits are SOFT! */
+static const int async_write_expire = 1000;	/* ditto for write async, these limits are SOFT! */
 static const int fifo_batch = 16;		/* # of sequential requests treated as one by the above parameters. */
-static const int writes_starved = 3;		/* max times reads can starve a write */
+static const int writes_starved = 2;		/* max times reads can starve a write */
 
 /* Elevator data */
 struct maple_data {
@@ -59,9 +58,9 @@ maple_merged_requests(struct request_queue *q, struct request *rq,
 	 * and move into next position (next will be deleted) in fifo.
 	 */
 	if (!list_empty(&rq->queuelist) && !list_empty(&next->queuelist)) {
-		if (time_before(rq_fifo_time(next), rq_fifo_time(rq))) {
+		if (time_before(next->fifo_time, rq->fifo_time)) {
 			list_move(&rq->queuelist, &next->queuelist);
-			rq_set_fifo_time(rq, rq_fifo_time(next));
+			rq->fifo_time = next->fifo_time;
 		}
 	}
 
@@ -75,14 +74,13 @@ maple_add_request(struct request_queue *q, struct request *rq)
 	struct maple_data *mdata = maple_get_data(q);
 	const int sync = rq_is_sync(rq);
 	const int dir = rq_data_dir(rq);
-	const bool display_on = is_display_on();
 
 	/*
 	 * Add request to the proper fifo list and set its
 	 * expire time.
 	 */
 
-	rq_set_fifo_time(rq, jiffies + mdata->fifo_expire[sync][dir]);
+	rq->fifo_time = jiffies + mdata->fifo_expire[sync][dir];
  	list_add_tail(&rq->queuelist, &mdata->fifo_list[sync][dir]);
 }
 
@@ -99,7 +97,7 @@ maple_expired_request(struct maple_data *mdata, int sync, int data_dir)
 	rq = rq_entry_fifo(list->next);
 
 	/* Request has expired */
-	if (time_after_eq(jiffies, rq_fifo_time(rq)))
+	if (time_after_eq(jiffies, rq->fifo_time))
 		return rq;
 
 	return NULL;
@@ -123,7 +121,7 @@ maple_choose_expired_request(struct maple_data *mdata)
 	 */
 
    if (rq_async_read && rq_sync_read) {
-     if (time_after(rq_fifo_time(rq_sync_read), rq_fifo_time(rq_async_read)))
+     if (time_after(rq_sync_read->fifo_time, rq_async_read->fifo_time))
              return rq_async_read;
    } else if (rq_async_read) {
            return rq_async_read;
@@ -132,7 +130,7 @@ maple_choose_expired_request(struct maple_data *mdata)
    }
 
    if (rq_async_write && rq_sync_write) {
-     if (time_after(rq_fifo_time(rq_sync_write), rq_fifo_time(rq_async_write)))
+     if (time_after(rq_sync_write->fifo_time, rq_async_write->fifo_time))
              return rq_async_write;
    } else if (rq_async_write) {
            return rq_async_write;
@@ -196,7 +194,6 @@ maple_dispatch_requests(struct request_queue *q, int force)
 	struct maple_data *mdata = maple_get_data(q);
 	struct request *rq = NULL;
 	int data_dir = READ;
-	const bool display_on = is_display_on();
 
 	/*
 	 * Retrieve any expired request after a batch of
