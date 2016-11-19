@@ -41,7 +41,7 @@ menu "General setup"
 config SCHED_MUQSS
 	bool "MuQSS cpu scheduler"
 	select HIGH_RES_TIMERS
-	default n
+	default y
 	---help---
 	  The Multiple Queue Skiplist Scheduler for excellent interactivity and
 	  responsiveness on the desktop and highly scalable deterministic
@@ -131,7 +131,7 @@ config LOCALVERSION
 
 config LOCALVERSION_AUTO
 	bool "Automatically append version information to the version string"
-	default y
+	default n
 	depends on !COMPILE_TEST
 	help
 	  This will try to automatically determine if the current tree is a

@@ -1,8 +1,8 @@
 VERSION = 4
 PATCHLEVEL = 9
 SUBLEVEL = 0
-EXTRAVERSION = -zen
-NAME = Life is Root
+EXTRAVERSION = -chill
+NAME = Life is Root(Based on Zen, modified for personal use)
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
