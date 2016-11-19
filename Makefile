@@ -1,8 +1,8 @@
 VERSION = 4
 PATCHLEVEL = 8
 SUBLEVEL = 9
-EXTRAVERSION = -zen
-NAME = Online Space Amplifier
+EXTRAVERSION = -chill
+NAME = Online Space Amplifier (Based on Zen, modified for personal use)
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"

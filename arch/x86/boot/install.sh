@@ -8,6 +8,8 @@
 #
 # Adapted from code in arch/i386/boot/Makefile by H. Peter Anvin
 #
+# Modified to fully set up kernel on ArchLinux using grub2 by Joe Maples
+#
 # "make install" script for i386 architecture
 #
 # Arguments:
@@ -38,22 +40,31 @@ if [ -x /sbin/${INSTALLKERNEL} ]; then exec /sbin/${INSTALLKERNEL} "$@"; fi
 
 # Default install - same as make zlilo
 
-if [ -f $4/vmlinuz ]; then
-	mv $4/vmlinuz $4/vmlinuz.old
+if [ -f $4/vmlinuz-chill ]; then
+	mv $4/vmlinuz-chill $4/vmlinuz-chill.old
 fi
 
 if [ -f $4/System.map ]; then
 	mv $4/System.map $4/System.old
 fi
 
-cat $2 > $4/vmlinuz
+cat $2 > $4/vmlinuz-chill
 cp $3 $4/System.map
+
+echo "# mkinitcpio preset file for the 'chill' package
+ALL_config='/etc/mkinitcpio.conf'
+ALL_kver='/boot/vmlinuz-chill'
+PRESETS=('default' 'fallback')
+default_image='/boot/initramfs-chill.img'
+fallback_image='/boot/initramfs-chill-fallback.img'
+fallback_options='-S autodetect'" > /etc/mkinitcpio.d/chill.preset
+
+mkinitcpio -p chill.preset
 
 if [ -x /sbin/lilo ]; then
        /sbin/lilo
 elif [ -x /etc/lilo/install ]; then
-       /etc/lilo/install
+       /etc/lilo/istall
 else
        sync
-       echo "Cannot find LILO."
 fi
