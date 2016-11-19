@@ -1,0 +1,24 @@
+#!/bin/bash
+# Based on Paul Beelers script from the SaberMod linux kernel
+# Adapted and personalized by Joe Maples (frap129)
+
+# Try to parallelize the build for faster performance.
+JOBS="$(cat /proc/cpuinfo | grep -c processor)";
+
+# Determine Make flags
+MAKE_FLAGS=-j"$JOBS";
+
+# Kernel configuration
+if [ -z "$1" ]; then
+    make ARCH=x86 my_defconfig;
+fi;
+
+# Start the build
+time make $MAKE_FLAGS bzImage && time make $MAKE_FLAGS modules;
+
+echo "Time to install the kernel binary and modules which must run as root.";
+sleep 5;
+sudo make headers_install && sudo make modules_install && sudo make install;
+echo "Reboot to new kernel";
+sudo reboot;
+
