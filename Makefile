@@ -1,6 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 8
-SUBLEVEL = 9
+SUBLEVEL = 10
 EXTRAVERSION = -chill
 NAME = Online Space Amplifier (Based on Zen, modified for personal use)
 
